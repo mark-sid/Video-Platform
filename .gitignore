@@ -3,6 +3,7 @@
 .env
 backend/.pytest_cache/
 backend/venv/
+backend/media/
 *.pyc
 *.log
 *.pot
