@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     # loading .env
     model_config = SettingsConfigDict(
         extra="ignore",
-        env_file=BASE_DIR.parent / ".env" if os.getenv("LOAD_DOTENV", "1") != "0" else None,
+        env_file=None
         env_file_encoding="utf-8",  
     )
     # media variables 
