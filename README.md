@@ -9,7 +9,7 @@ cd Video-Platform
 ```
 create and fill it out .env file based on the .env.example
 ```
-docker  compose  up  -d --build
+docker compose up -d --build
 ```
 ```
 docker compose logs -f api
