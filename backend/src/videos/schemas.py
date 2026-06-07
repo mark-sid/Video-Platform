@@ -4,12 +4,14 @@ from typing import Optional
 from src.config import settings
    
    
-class VideoUpdateShema(BaseModel):
+class VideoUpdateSchema(BaseModel):
+    """Schema for video data updating"""
     name: Optional[str] = None
     description: Optional[str] = None
     
        
 class VideoLazySchema(BaseModel):
+    """Schema for video lazy response"""
     id: int
     name: str
     description: str
@@ -25,7 +27,8 @@ class VideoLazySchema(BaseModel):
         return f"http://localhost:8000{settings.prefix}/videos/download/{self.cover_media_id}/" 
 
 
-class VideoSchema(VideoLazySchema):    
+class VideoSchema(VideoLazySchema): 
+    """Schema for video"""   
     channel_id: int    
     video_media_id: int
     
@@ -35,7 +38,8 @@ class VideoSchema(VideoLazySchema):
         return f"http://localhost:8000{settings.prefix}/videos/download/{self.video_media_id}/"    
 
 
-class VideoCreateInternal(VideoUpdateShema):
+class VideoCreateInternal(VideoUpdateSchema):
+    """Schema for video creating"""
     channel_id: int
     video_file_path: str
     video_filename: str

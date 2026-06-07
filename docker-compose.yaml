@@ -8,19 +8,22 @@ services:
     depends_on:
       database:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     ports:
       - "8000:8000"
     volumes:
       - api_media_data:/app/media
-    environment: 
-      - LOAD_DOTENV=0
+      - api_alembic:/app/alembic
+    environment:
       - SECRET_KEY=${SECRET_KEY}
       - DATABASE_URL=${DATABASE_URL}
       - TEST_DATABASE_URL=${TEST_DATABASE_URL}
     
   database:
-    image: postgres:15
+    image: postgres:latest
     environment:
+      - LOAD_DEV_ENV_FILE=0
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_DB=${DB_NAME}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
@@ -31,12 +34,22 @@ services:
       timeout: 30s
       retries: 5
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql
     restart: unless-stopped
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping" ]
+      interval: 5s
+      timeout: 15s
+      retries: 5
 
 volumes:
   db_data:
   api_media_data:
+  api_alembic:
 
 
       

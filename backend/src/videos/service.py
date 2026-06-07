@@ -1,25 +1,37 @@
 import os
-from fastapi import APIRouter, status, HTTPException, UploadFile, Form, File, Query
-from fastapi.responses import FileResponse
+from pathlib import Path
 from typing import List, Optional, Annotated
 
+from fastapi import APIRouter, status, HTTPException, UploadFile, Form, File, Query, Request
+from fastapi.responses import FileResponse
+from fastapi_cache.decorator import cache
+
 from .media_handler import save_file, delete_file
-from .schemas import VideoSchema, VideoLazySchema, VideoUpdateShema, VideoCreateInternal
-from .crud import create_video_with_media, get_video, get_media, get_videos, update_video, delete_video_with_media, update_video_media
+from .schemas import VideoSchema, VideoLazySchema, VideoUpdateSchema, VideoCreateInternal
+from .crud import (
+    create_video_with_media, 
+    get_video, 
+    get_media, 
+    get_videos, 
+    update_video, 
+    delete_video_with_media, 
+    update_video_media
+)
 from .utility import check_files_types, check_video
 
 from src.channels.utility import get_current_channel
 from src.database import session_dep
 from src.auth.dependencies import user_dep
-from pathlib import Path
-
+from src.limiter import limiter
 
 
 videos_router = APIRouter(prefix="/videos")
 
 
 @videos_router.post("/", status_code=201, response_model=VideoSchema)
+@limiter.limit("5/minute")
 async def upload_video(
+    request: Request, 
     session: session_dep, 
     user: user_dep,
     name: Annotated[str, Form()],
@@ -28,6 +40,8 @@ async def upload_video(
     video_file: UploadFile = File(...),
     cover_file: UploadFile = File(...)
 ):
+    """Controller to upload video to user channel"""
+    # getting user channel
     await get_current_channel(session, user, channel_id)
     # checking files types 
     check_files_types(video_file, cover_file)
@@ -35,7 +49,7 @@ async def upload_video(
     video_file_path, video_filename = await save_file(video_file, user.id)
     cover_file_path, cover_filename = await save_file(cover_file, user.id)
   
-    # creating video
+    # creating video with media
     try:
         video_data = VideoCreateInternal(
             name=name,
@@ -52,6 +66,7 @@ async def upload_video(
         
         new_video = await create_video_with_media(session, video_data)
     except Exception:
+        # handling errors
         delete_file(video_file_path)
         delete_file(cover_file_path)
 
@@ -66,16 +81,26 @@ async def upload_video(
     
 
 @videos_router.get("/", status_code=200, response_model=List[VideoLazySchema])
-async def videos(session: session_dep, user: user_dep, page: int = Query(1, gt=0)):
+@cache(expire=60)
+async def videos(
+    request: Request, 
+    session: session_dep, 
+    user: user_dep, 
+    page: int = Query(1, gt=0),
+    search: str | None = Query(None, min_length=1, max_length=100)
+):
+    """Controller to get videos list with pagination and optional search"""
     video_list = [
-        VideoLazySchema.model_validate(video) for video in await get_videos(session, page)
+        VideoLazySchema.model_validate(video) for video in await get_videos(session, page, search=search)
     ]
     
     return video_list
 
 
 @videos_router.get("/{video_id}/", status_code=200, response_model=VideoSchema)
-async def video(session: session_dep, user: user_dep, video_id: int):
+@cache(expire=60)
+async def video(request: Request, session: session_dep, user: user_dep, video_id: int):
+    """Controller to get video by id"""
     video = await get_video(session, video_id)
 
     if not video:
@@ -88,7 +113,9 @@ async def video(session: session_dep, user: user_dep, video_id: int):
 
 
 @videos_router.post("/download/{media_id}/", status_code=200, response_class=FileResponse)
-async def download_media(session: session_dep, user: user_dep, media_id: int):
+@limiter.limit("10/minute")
+async def download_media(request: Request, session: session_dep, user: user_dep, media_id: int):
+    """Controller to download video media"""
     media = await get_media(session, media_id)
     
     if not media:
@@ -107,14 +134,16 @@ async def download_media(session: session_dep, user: user_dep, media_id: int):
 
 
 @videos_router.patch("/{video_id}/media/", status_code=200)
+@limiter.limit("5/minute")
 async def video_update_media(   
+    request: Request,                         
     session: session_dep, 
     user: user_dep,
     video_id : int,
     video_file: Optional[UploadFile] = File(default=None),
     cover_file: Optional[UploadFile] = File(default=None)
 ) -> dict: 
-    
+    """Controller to update video media"""
     video = await get_video(
         session, 
         video_id=video_id, 
@@ -122,7 +151,6 @@ async def video_update_media(
         load_cover_media=True if cover_file is not None else False, 
         load_video_media=True if video_file is not None else False
     )
-    
     check_video(video, user)
     
     if not await update_video_media(
@@ -141,12 +169,15 @@ async def video_update_media(
 
 
 @videos_router.patch("/{video_id}/", status_code=200)
-async def video_update(   
+@limiter.limit("15/minute")
+async def video_update(
+    request: Request,    
     session: session_dep, 
     user: user_dep,
-    video_data: VideoUpdateShema,
+    video_data: VideoUpdateSchema,
     video_id : int
 ) -> dict: 
+    """Controller to update video"""
     video = await get_video(session, video_id, load_channel=True)
     
     check_video(video, user)
@@ -161,7 +192,8 @@ async def video_update(
 
 
 @videos_router.delete("/{video_id}/", status_code=200)
-async def video_delete(session: session_dep, user: user_dep, video_id: int):
+async def video_delete(request: Request, session: session_dep, user: user_dep, video_id: int):
+    """Controller to delete video"""
     video = await get_video(
         session, 
         video_id,

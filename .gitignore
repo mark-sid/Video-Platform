@@ -1,10 +1,15 @@
 .pytest_cache
 .vscode
 .env
+
 backend/.pytest_cache/
 backend/venv/
 backend/media/
+
+**/__pycache__/
+
 *.pyc
 *.log
 *.pot
 *.pyc
+

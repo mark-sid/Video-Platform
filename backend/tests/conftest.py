@@ -1,12 +1,11 @@
-import pytest
-import pytest_asyncio
-
-from fastapi import UploadFile
-from httpx import ASGITransport, AsyncClient
-
 import tempfile
 from pathlib import Path
 from io import BytesIO
+
+import pytest
+import pytest_asyncio
+from fastapi import UploadFile
+from httpx import ASGITransport, AsyncClient
 
 from .fake_db import engine, new_session
 
@@ -111,6 +110,7 @@ def temp_media_dir(monkeypatch):
 def video_file():
     return ("video.png", BytesIO(b"fake video content"), "video/mp4")
 
+
 @pytest.fixture
 def cover_file():
     return ("cover.png", BytesIO(b"fake cover content"), "image/png")
@@ -150,11 +150,6 @@ async def video(session, user, channel, temp_media_dir):
         cover_content_type=cover_file.content_type
     )
 
-    # TODO: postgresql 
     video = await create_video_with_media(session, video_data)
         
     yield video
-    
-
-
-    

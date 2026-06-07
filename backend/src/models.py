@@ -1,4 +1,5 @@
 from typing import List
+
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -19,7 +20,7 @@ class Channel(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    name: Mapped[str] = mapped_column(unique=True)
+    name: Mapped[str] = mapped_column(unique=True, index=True)
     description: Mapped[str]
     user: Mapped["User"] = relationship(back_populates="channels") 
     videos: Mapped[List["Video"]] = relationship(back_populates="channel", cascade="all, delete-orphan")
@@ -56,5 +57,3 @@ class Video(Base):
         viewonly=True    
     )
     
-    
-

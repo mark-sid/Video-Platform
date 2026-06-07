@@ -1,15 +1,17 @@
-import asyncio
+import os
+from typing import Optional, List
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from fastapi import UploadFile
-from typing import Optional, List
+
+from .schemas import VideoUpdateSchema, VideoCreateInternal
+from .media_handler import save_file, delete_file
+from .utility import check_file_type
 
 from src.config import settings
 from src.models import Video, Media
-from .schemas import VideoUpdateShema, VideoCreateInternal
-from .media_handler import save_file, delete_file
-from .utility import check_file_type
 
 
 # ===============================
@@ -23,6 +25,7 @@ async def create_video(
     video_media_id: int,
     cover_media_id: int
 ) -> Video:
+    """Function to create video"""
     try:
         video = Video(
             name=name, 
@@ -51,6 +54,8 @@ async def get_video(
     load_video_media=False,
     load_cover_media=False
 ) -> Optional[Video]:
+    """Function to get video with optional load of its media and channel"""
+    
     if not video_id:
         return None
     
@@ -70,22 +75,27 @@ async def get_video(
     return video.scalar_one_or_none()
 
 
-async def get_videos(session: AsyncSession, page: int = 1) -> List[Video]:
+async def get_videos(session: AsyncSession, page: int = 1, search: str | None = None) -> List[Video]:
+    """Function to get videos with pagination and search"""
     offset = (page - 1) * 40 # per_page is a constant value of 40
     
-    videos = await session.execute(
-        select(
-            Video.id, 
-            Video.name, 
-            Video.description, 
-            Video.cover_media_id
-        ).offset(offset).limit(40)     
-    )
+    stmt = select(
+        Video.id, 
+        Video.name, 
+        Video.description, 
+        Video.cover_media_id
+    ).offset(offset).limit(40)     
+    
+    if search:
+        stmt = stmt.where(Video.name.ilike(f"%{search}%"))
+    
+    videos = await session.execute(stmt)
     
     return videos.all()
 
 
-async def update_video(session: AsyncSession, video: Video, video_data: VideoUpdateShema) -> None:
+async def update_video(session: AsyncSession, video: Video, video_data: VideoUpdateSchema) -> None:
+    """Function to update video data"""
     if video:
         to_update = video_data.model_dump(exclude_unset=True)
         
@@ -93,11 +103,10 @@ async def update_video(session: AsyncSession, video: Video, video_data: VideoUpd
             setattr(video, key, value)
             
         await session.commit()
-    
-    return None
-    
+
     
 async def delete_video(session: AsyncSession, video: Video) -> bool:
+    """Function to delete video"""
     if not video:
         return False
     
@@ -111,6 +120,7 @@ async def delete_video(session: AsyncSession, video: Video) -> bool:
 # Media block
 # ===============================
 async def get_media(session: AsyncSession, media_id) -> Optional[Media]:
+    """Function to get media by id"""
     if not media_id:
         return None
     
@@ -123,6 +133,7 @@ async def get_media(session: AsyncSession, media_id) -> Optional[Media]:
 
 
 async def create_media(session: AsyncSession, filename: str, file_path: str, media_type: str) -> Media:
+    """Function to create media"""
     media = Media(
         filename=filename, 
         file_path=file_path, 
@@ -136,6 +147,7 @@ async def create_media(session: AsyncSession, filename: str, file_path: str, med
 
 
 async def update_media(session: AsyncSession, id: int, filename: str, file_path: str):
+    """Function to update media"""
     media = await get_media(session, id)
     
     if not media:
@@ -156,12 +168,14 @@ async def update_video_media(
     video_file: UploadFile,
     video: Video,
     user_id: int
-    
 ) -> bool:
+    """Function to update video media"""
     if cover_file:            
         check_file_type(cover_file, settings.ALLOWED_COVER_MEDIA_TYPES)
         cover_file_path, cover_filename = await save_file(cover_file, user_id)
-        delete_file(video.cover_media.file_path)
+        
+        if os.path.exists(video.cover_media.file_path):
+            delete_file(video.cover_media.file_path) 
         
         if not await update_media(
             session,
@@ -177,7 +191,8 @@ async def update_video_media(
                 
         video_file_path, video_filename = await save_file(video_file, user_id)  
         
-        delete_file(video.video_media.file_path)
+        if os.path.exists(video.video_media.file_path):
+            delete_file(video.video_media.file_path)
         
         if not await update_media(
             session,
@@ -188,12 +203,13 @@ async def update_video_media(
             return False
     
     return True
-    
-    
+
+
 # ===============================
 # Video + Media block
 # ===============================
 async def create_video_with_media(session: AsyncSession, video_data: VideoCreateInternal) -> Video:
+    """Function to create video with its media"""
     video_media = await create_media(
         session, 
         video_data.video_filename, 
@@ -220,18 +236,17 @@ async def create_video_with_media(session: AsyncSession, video_data: VideoCreate
 
 
 async def delete_video_with_media(session: AsyncSession, video: Video) -> bool:
+    """Function to delete video with its media"""
     if not video:
         return False
         
-    try:
-        delete_file(video.cover_media.file_path)
-        delete_file(video.video_media.file_path)
-    except FileNotFoundError:
-        return False
+    if os.path.exists(video.cover_media.file_path):
+        delete_file(video.cover_media.file_path) 
         
+    if os.path.exists(video.video_media.file_path):
+        delete_file(video.video_media.file_path)
+
     if not await delete_video(session, video):
         return False
         
     return True
-    
-    

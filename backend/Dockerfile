@@ -1,19 +1,15 @@
 FROM python:3.11-slim
 
 WORKDIR /app
+COPY requirements.txt ./requirements.txt
 
-COPY requirements.txt /app/requirements.txt
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt
 
-RUN python -m venv venv
-
-RUN pip install --upgrade pip
-RUN pip install -r requirements.txt
-
-COPY . /app
+COPY . ./
 EXPOSE 8000
 
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
-CMD ["uvicorn", "src.main:app", "--host",  "0.0.0.0", "--port", "8000"]
+ENTRYPOINT ["/app/entrypoint.sh"]

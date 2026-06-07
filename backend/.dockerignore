@@ -1,0 +1,7 @@
+/.pytest_cache/
+/tests/
+/media/
+*.pyc
+*.log
+*.pot
+dev.env

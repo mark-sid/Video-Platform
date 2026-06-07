@@ -7,6 +7,7 @@ from src.models import Channel, User
 
 
 async def get_current_channel(session: AsyncSession, user: User, channel_id: int) -> Channel:
+    """Function for getting chanell and checking its existing, user access to it"""
     channel = await get_channel(session, id=channel_id)
     
     if channel is None:
@@ -19,6 +20,7 @@ async def get_current_channel(session: AsyncSession, user: User, channel_id: int
     
 
 async def check_same_channel_name(session: AsyncSession, name: str) -> None:
+    """Function to check uniqueness of the channel name"""
     if await get_channel(session, name) is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

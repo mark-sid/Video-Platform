@@ -93,7 +93,16 @@ async def test_video_list(auth_client, video, page, status):
     if page == 1:
         assert response.json()[0]["id"] == video.id
     
-
+@pytest.mark.asyncio
+async def test_video_list_with_search(auth_client, video):
+    response = await auth_client.get(
+        f"/videos/?page=1&search={video.name}" 
+    )
+    
+    assert response.status_code == 200
+    
+    assert response.json()[0]["id"] == video.id
+        
 # test get video by id
 @pytest.mark.asyncio
 async def test_get_video(auth_client, video):
