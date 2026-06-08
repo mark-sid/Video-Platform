@@ -1,6 +1,6 @@
 import jwt
 from datetime import datetime, timedelta, timezone
-from typing import Annotated
+from typing import Annotated, Optional
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -18,12 +18,12 @@ from src.config import settings
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"/api/{settings.api_version}/user/token/")
 
 
-async def authenticate(session: AsyncSession, username: str, password: str) -> User | False:
+async def authenticate(session: AsyncSession, username: str, password: str) -> Optional[User]:
     """Function to authenticate user"""
     user = await get_user(session, username)
     
     if not user or not verify_password(password, user.password):
-        return False
+        return None
 
     return user
 

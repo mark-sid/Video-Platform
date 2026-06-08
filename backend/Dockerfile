@@ -1,15 +1,16 @@
 FROM python:3.11-slim
 
 WORKDIR /app
-COPY requirements.txt ./requirements.txt
 
+COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install -r requirements.txt
 
-COPY . ./
+COPY entrypoint.sh .
+RUN chmod +x entrypoint.sh
+
+COPY . .
+
 EXPOSE 8000
 
-COPY entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
-
-ENTRYPOINT ["/app/entrypoint.sh"]
+ENTRYPOINT ["./entrypoint.sh"]

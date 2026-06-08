@@ -10,7 +10,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 class CacheConfig(BaseModel):
-    host: str = "localhost"#"redis"
+    host: str = "redis"
     port: str = "6379"
     db: int = 0
     prefix: str = "cache"
@@ -47,7 +47,7 @@ class Settings(BaseSettings):
     # redis 
     cache: CacheConfig = CacheConfig()
     # limiter
-    limiter_storage_uri: str = "redis://localhost:6379/1" #"redis://redis:6379/1"
+    limiter_storage_uri: str = "redis://redis:6379/1"
     limiter_default_limits: str ="50/minute"
     
     

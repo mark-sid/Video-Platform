@@ -53,7 +53,7 @@ async def login(
     """Controller to get access token"""
     user = await authenticate(session, form_data.username, form_data.password)
     
-    if not user:
+    if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password"
