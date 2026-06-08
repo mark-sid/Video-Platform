@@ -5,7 +5,11 @@ A RESTful video sharing API built on **FastAPI** with support for asynchronous p
 git clone https://github.com/mark-sid/Video-Platform.git
 ```
 ```
-docker  compose  up  --build
+cd Video-Platform
+```
+create and fill it out .env file based on the .env.example
+```
+docker compose up -d --build
 ```
 ```
 docker compose logs -f api
