@@ -16,6 +16,7 @@ services:
       - api_media_data:/app/media
       - api_alembic:/app/alembic
     environment:
+      - LOAD_DEV_ENV_FILE=0
       - SECRET_KEY=${SECRET_KEY}
       - DATABASE_URL=${DATABASE_URL}
       - TEST_DATABASE_URL=${TEST_DATABASE_URL}
@@ -23,7 +24,6 @@ services:
   database:
     image: postgres:latest
     environment:
-      - LOAD_DEV_ENV_FILE=0
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_DB=${DB_NAME}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
