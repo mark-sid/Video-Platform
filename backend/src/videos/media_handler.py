@@ -49,10 +49,4 @@ async def save_file(file: UploadFile, user_id: int) -> Tuple[str, str]:
 
 def delete_file(file_path: str) -> None:
     os.remove(file_path)
-
-        
-
-
-
-        
     
